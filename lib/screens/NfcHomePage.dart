@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 
 import '../core/app_colors.dart';
+import '../core/logger.dart';
 import '../models/nfc_result.dart';
 import '../services/nfc_service.dart';
 import '../widgets/ndef_records_card.dart';
 import '../widgets/tag_info_card.dart';
+import 'cash_in_page.dart';
+import 'cash_out_page.dart';
 
 /// Main home page with premium NFC scanning design
 class NfcHomePage extends StatefulWidget {
@@ -36,7 +39,11 @@ class _NfcHomePageState extends State<NfcHomePage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _checkNfcAvailability();
+
+    // Check availability after the first frame to ensure activity is attached
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkNfcAvailability();
+    });
 
     // Setup pulse animation for the scan button
     _pulseController = AnimationController(
@@ -78,8 +85,17 @@ class _NfcHomePageState extends State<NfcHomePage>
           _nfcAvailability = availability;
           _errorMessage = null;
         });
+        AppLogger.debug(
+          'Home page availability updated: $availability',
+          tag: 'UI',
+        );
       }
     } catch (e) {
+      AppLogger.error(
+        'Critical error checking NFC availability',
+        error: e,
+        tag: 'UI',
+      );
       if (mounted) {
         setState(() {
           _errorMessage = 'Failed to check NFC availability: $e';
@@ -106,8 +122,13 @@ class _NfcHomePageState extends State<NfcHomePage>
           if (_recentScans.length > 5) _recentScans.removeLast();
           _isScanning = false;
         });
+        AppLogger.success(
+          'Scan result received in UI: ${result.tag.id}',
+          tag: 'UI',
+        );
       }
     } on NfcException catch (e) {
+      AppLogger.warning('NFC Scan failed: ${e.message}', tag: 'UI');
       if (mounted) {
         setState(() {
           _errorMessage = e.message;
@@ -116,6 +137,7 @@ class _NfcHomePageState extends State<NfcHomePage>
         _showErrorSnackBar(e.message);
       }
     } catch (e) {
+      AppLogger.error('Unexpected error during scan', error: e, tag: 'UI');
       if (mounted) {
         setState(() {
           _errorMessage = 'Unexpected error: $e';
@@ -175,6 +197,7 @@ class _NfcHomePageState extends State<NfcHomePage>
             onPressed: _checkNfcAvailability,
             tooltip: 'Refresh Status',
           ),
+
           const SizedBox(width: 8),
         ],
       ),
@@ -192,8 +215,10 @@ class _NfcHomePageState extends State<NfcHomePage>
                       _buildStatusCard(colorScheme, isDark),
                       const SizedBox(height: 60),
                       _buildScanSection(colorScheme, isDark),
-                      const SizedBox(height: 40),
                       _buildInstructions(theme, isDark),
+                      const SizedBox(height: 24),
+                      _buildActionButtons(),
+                      const SizedBox(height: 24),
                       if (_errorMessage != null && !_isScanning) ...[
                         const SizedBox(height: 20),
                         _buildErrorDisplay(isDark),
@@ -557,6 +582,54 @@ class _NfcHomePageState extends State<NfcHomePage>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CashInPage()),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('إيداع'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CashOutPage()),
+              );
+            },
+            icon: const Icon(Icons.remove),
+            label: const Text('سحب'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

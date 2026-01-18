@@ -3,6 +3,7 @@ import 'package:nfc/screens/NfcHomePage.dart';
 import 'core/app_theme.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const NfcReaderApp());
 }
 
