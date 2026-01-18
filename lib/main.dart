@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nfc/screens/NfcHomePage.dart';
-
-
+import 'core/app_theme.dart';
 
 void main() {
   runApp(const NfcReaderApp());
@@ -16,35 +15,10 @@ class NfcReaderApp extends StatelessWidget {
     return MaterialApp(
       title: 'NFC Reader',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       home: const NfcHomePage(),
     );
   }
 }
-
