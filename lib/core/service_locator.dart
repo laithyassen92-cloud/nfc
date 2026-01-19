@@ -1,22 +1,22 @@
 import 'package:http/http.dart' as http;
 import '../../core/http_client_helper.dart';
 import '../../core/api_constants.dart';
-import '../../data/datasources/auth_data_source.dart';
-import '../../data/datasources/students_data_source.dart';
-import '../../data/datasources/student_wallets_data_source.dart';
-import '../../data/datasources/student_wallet_transactions_data_source.dart';
-import '../../data/repositories/auth_repository_impl.dart';
-import '../../data/repositories/students_repository_impl.dart';
-import '../../data/repositories/student_wallets_repository_impl.dart';
-import '../../data/repositories/student_wallet_transactions_repository_impl.dart';
-import '../../domain/repositories/auth_repository.dart';
-import '../../domain/repositories/students_repository.dart';
-import '../../domain/repositories/student_wallets_repository.dart';
-import '../../domain/repositories/student_wallet_transactions_repository.dart';
-import '../../presentation/cubits/auth_cubit.dart';
-import '../../presentation/cubits/students_cubit.dart';
-import '../../presentation/cubits/wallet_cubit.dart';
-import '../../presentation/cubits/transactions_cubit.dart';
+import '../features/auth/data/datasources/auth_data_source.dart';
+import '../features/students/data/datasources/students_data_source.dart';
+import '../features/wallet/data/datasources/student_wallets_data_source.dart';
+import '../features/wallet/data/datasources/student_wallet_transactions_data_source.dart';
+import '../features/auth/data/repositories/auth_repository_impl.dart';
+import '../features/students/data/repositories/students_repository_impl.dart';
+import '../features/wallet/data/repositories/student_wallets_repository_impl.dart';
+import '../features/wallet/data/repositories/student_wallet_transactions_repository_impl.dart';
+import '../features/auth/domain/repositories/auth_repository.dart';
+import '../features/students/domain/repositories/students_repository.dart';
+import '../features/wallet/domain/repositories/student_wallets_repository.dart';
+import '../features/wallet/domain/repositories/student_wallet_transactions_repository.dart';
+import '../features/auth/presentation/cubits/auth_cubit.dart';
+import '../features/students/presentation/cubits/students_cubit.dart';
+import '../features/wallet/presentation/cubits/wallet_cubit.dart';
+import '../features/wallet/presentation/cubits/transactions_cubit.dart';
 
 /// Service Locator for Dependency Injection
 /// This is a simple implementation. For larger apps, consider using get_it package
@@ -50,21 +50,14 @@ class ServiceLocator {
   String? get authToken => _authToken;
 
   // Data Sources
-  AuthDataSource get authDataSource => AuthDataSource(
-        httpClient: _httpClient,
-        authToken: _authToken,
-      );
+  AuthDataSource get authDataSource =>
+      AuthDataSource(httpClient: _httpClient, authToken: _authToken);
 
-  StudentsDataSource get studentsDataSource => StudentsDataSource(
-        httpClient: _httpClient,
-        authToken: _authToken,
-      );
+  StudentsDataSource get studentsDataSource =>
+      StudentsDataSource(httpClient: _httpClient, authToken: _authToken);
 
   StudentWalletsDataSource get studentWalletsDataSource =>
-      StudentWalletsDataSource(
-        httpClient: _httpClient,
-        authToken: _authToken,
-      );
+      StudentWalletsDataSource(httpClient: _httpClient, authToken: _authToken);
 
   StudentWalletTransactionsDataSource get studentWalletTransactionsDataSource =>
       StudentWalletTransactionsDataSource(
@@ -73,18 +66,14 @@ class ServiceLocator {
       );
 
   // Repositories
-  AuthRepository get authRepository => AuthRepositoryImpl(
-        dataSource: authDataSource,
-      );
+  AuthRepository get authRepository =>
+      AuthRepositoryImpl(dataSource: authDataSource);
 
-  StudentsRepository get studentsRepository => StudentsRepositoryImpl(
-        dataSource: studentsDataSource,
-      );
+  StudentsRepository get studentsRepository =>
+      StudentsRepositoryImpl(dataSource: studentsDataSource);
 
   StudentWalletsRepository get studentWalletsRepository =>
-      StudentWalletsRepositoryImpl(
-        dataSource: studentWalletsDataSource,
-      );
+      StudentWalletsRepositoryImpl(dataSource: studentWalletsDataSource);
 
   StudentWalletTransactionsRepository get studentWalletTransactionsRepository =>
       StudentWalletTransactionsRepositoryImpl(
@@ -92,21 +81,16 @@ class ServiceLocator {
       );
 
   // Cubits
-  AuthCubit get authCubit => AuthCubit(
-        repository: authRepository,
-      );
+  AuthCubit get authCubit => AuthCubit(repository: authRepository);
 
-  StudentsCubit get studentsCubit => StudentsCubit(
-        repository: studentsRepository,
-      );
+  StudentsCubit get studentsCubit =>
+      StudentsCubit(repository: studentsRepository);
 
-  WalletCubit get walletCubit => WalletCubit(
-        repository: studentWalletsRepository,
-      );
+  WalletCubit get walletCubit =>
+      WalletCubit(repository: studentWalletsRepository);
 
-  TransactionsCubit get transactionsCubit => TransactionsCubit(
-        repository: studentWalletTransactionsRepository,
-      );
+  TransactionsCubit get transactionsCubit =>
+      TransactionsCubit(repository: studentWalletTransactionsRepository);
 
   void dispose() {
     _httpClient.close();

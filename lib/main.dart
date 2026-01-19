@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:nfc/screens/NfcHomePage.dart';
+import 'features/students/presentation/screens/NfcHomePage.dart';
 import 'core/app_theme.dart';
 import 'core/service_locator.dart';
-import 'presentation/cubits/auth_cubit.dart';
-import 'presentation/cubits/students_cubit.dart';
-import 'presentation/cubits/wallet_cubit.dart';
-import 'presentation/cubits/transactions_cubit.dart';
-import 'presentation/screens/login_screen.dart';
+import 'features/auth/presentation/cubits/auth_cubit.dart';
+import 'features/students/presentation/cubits/students_cubit.dart';
+import 'features/wallet/presentation/cubits/wallet_cubit.dart';
+import 'features/wallet/presentation/cubits/transactions_cubit.dart';
+import 'features/auth/presentation/screens/login_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
