@@ -1,5 +1,5 @@
 class LoginResponse {
-  final String token;
+  final String token; // accessToken من الـ API
   final String refreshToken;
   final UserInfo user;
   final DateTime expiresAt;
@@ -12,100 +12,120 @@ class LoginResponse {
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    String? getString(String key) {
+      final val = json[key];
+      if (val == null) return null;
+      return val as String;
+    }
+
+    final token = getString('accessToken');
+    final refreshToken = getString('refreshToken');
+    final userJson = json['userInfo'] as Map<String, dynamic>?;
+    final expiresAtString = getString('expiryAccessToken');
+
+    if (token == null) {
+      throw FormatException('Missing required field: accessToken in $json');
+    }
+    if (refreshToken == null) {
+      throw FormatException('Missing required field: refreshToken in $json');
+    }
+    if (userJson == null) {
+      throw FormatException('Missing required field: userInfo in $json');
+    }
+    if (expiresAtString == null) {
+      throw FormatException(
+        'Missing required field: expiryAccessToken in $json',
+      );
+    }
+
     return LoginResponse(
-      token: json['token'] as String,
-      refreshToken: json['refreshToken'] as String,
-      user: UserInfo.fromJson(json['user'] as Map<String, dynamic>),
-      expiresAt: DateTime.parse(json['expiresAt'] as String),
+      token: token,
+      refreshToken: refreshToken,
+      user: UserInfo.fromJson(userJson),
+      expiresAt: DateTime.parse(expiresAtString),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'token': token,
+      'accessToken': token,
       'refreshToken': refreshToken,
-      'user': user.toJson(),
-      'expiresAt': expiresAt.toIso8601String(),
+      'userInfo': user.toJson(),
+      'expiryAccessToken': expiresAt.toIso8601String(),
     };
   }
-
-  LoginResponse copyWith({
-    String? token,
-    String? refreshToken,
-    UserInfo? user,
-    DateTime? expiresAt,
-  }) {
-    return LoginResponse(
-      token: token ?? this.token,
-      refreshToken: refreshToken ?? this.refreshToken,
-      user: user ?? this.user,
-      expiresAt: expiresAt ?? this.expiresAt,
-    );
-  }
 }
-
 class UserInfo {
-  final int id;
-  final String username;
+  final String id; // UUID
+  final String fullName;
   final String email;
-  final String firstName;
-  final String lastName;
-  final String role; // Admin, Teacher, Guardian, etc.
+  final int role;
+  final String? username;
   final String? photoUrl;
 
   UserInfo({
     required this.id,
-    required this.username,
+    required this.fullName,
     required this.email,
-    required this.firstName,
-    required this.lastName,
     required this.role,
+    this.username,
     this.photoUrl,
   });
 
   factory UserInfo.fromJson(Map<String, dynamic> json) {
+    String? getString(String key) {
+      final val = json[key];
+      if (val == null) return null;
+      return val.toString();
+    }
+
+    int? getInt(String key) {
+      final val = json[key];
+      if (val == null) return null;
+      if (val is int) return val;
+      return int.tryParse(val.toString());
+    }
+
+    final id = getString('id');
+    final fullName = getString('fullName');
+    final email = getString('email');
+    final role = getInt('role');
+
+    if (id == null) {
+      throw FormatException('Missing required field: id in UserInfo $json');
+    }
+    if (fullName == null) {
+      throw FormatException(
+        'Missing required field: fullName in UserInfo $json',
+      );
+    }
+    if (email == null) {
+      throw FormatException(
+        'Missing required field: email in UserInfo $json',
+      );
+    }
+    if (role == null) {
+      throw FormatException('Missing required field: role in UserInfo $json');
+    }
+
     return UserInfo(
-      id: json['id'] as int,
-      username: json['username'] as String,
-      email: json['email'] as String,
-      firstName: json['firstName'] as String,
-      lastName: json['lastName'] as String,
-      role: json['role'] as String,
-      photoUrl: json['photoUrl'] as String?,
+      id: id,
+      fullName: fullName,
+      email: email,
+      role: role,
+      username: getString('username'),
+      photoUrl: getString('profilePhotoUrl'),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'username': username,
+      'fullName': fullName,
       'email': email,
-      'firstName': firstName,
-      'lastName': lastName,
       'role': role,
-      if (photoUrl != null) 'photoUrl': photoUrl,
+      if (username != null) 'username': username,
+      if (photoUrl != null) 'profilePhotoUrl': photoUrl,
     };
-  }
-
-  String get fullName => '$firstName $lastName';
-
-  UserInfo copyWith({
-    int? id,
-    String? username,
-    String? email,
-    String? firstName,
-    String? lastName,
-    String? role,
-    String? photoUrl,
-  }) {
-    return UserInfo(
-      id: id ?? this.id,
-      username: username ?? this.username,
-      email: email ?? this.email,
-      firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
-      role: role ?? this.role,
-      photoUrl: photoUrl ?? this.photoUrl,
-    );
   }
 }
