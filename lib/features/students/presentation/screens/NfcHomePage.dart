@@ -9,8 +9,7 @@ import '../../../../widgets/ndef_records_card.dart';
 import '../../../../widgets/tag_info_card.dart';
 import '../../../wallet/presentation/screens/cash_in_page.dart';
 import '../../../wallet/presentation/screens/cash_out_page.dart';
-
-
+import '../../../wallet/presentation/screens/wallet_transactions_page.dart';
 
 /// Main home page with premium NFC scanning design
 class NfcHomePage extends StatefulWidget {
@@ -588,43 +587,75 @@ class _NfcHomePageState extends State<NfcHomePage>
   }
 
   Widget _buildActionButtons() {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CashInPage()),
-              );
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('إيداع'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CashInPage()),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('إيداع'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CashOutPage()),
+                  );
+                },
+                icon: const Icon(Icons.remove),
+                label: const Text('سحب'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: ElevatedButton.icon(
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
             onPressed: () {
+              // Note: In a real app, this walletId would come from the scanned tag/student data
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const CashOutPage()),
+                MaterialPageRoute(
+                  builder: (_) => const WalletTransactionsPage(
+                    studentNumber: '001004', // Mock for general history view
+                    studentName: 'سجل العمليات العام',
+                  ),
+                ),
               );
             },
-            icon: const Icon(Icons.remove),
-            label: const Text('سحب'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
+            icon: const Icon(Icons.history, color: Colors.blueGrey),
+            label: const Text('سجل العمليات والاسترجاع'),
+            style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
+              side: const BorderSide(color: Colors.blueGrey),
+              foregroundColor: Colors.blueGrey,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

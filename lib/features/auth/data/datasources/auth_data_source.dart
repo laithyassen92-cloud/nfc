@@ -25,8 +25,6 @@ class AuthDataSource {
     return headers;
   }
 
-
-
   Future<Either<Failure, LoginResponse>> login(LoginRequest request) async {
     final result = await httpClient.post(
       ApiConstants.loginEndpoint,

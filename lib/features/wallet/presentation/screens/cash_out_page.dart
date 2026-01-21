@@ -1,12 +1,15 @@
 // lib/screens/cash_out_page.dart
 
 import 'package:flutter/material.dart';
-import '../../../../models/cash_transaction.dart';
-import '../../../../services/nfc_service.dart';
-import '../../../../services/transaction_service.dart';
-import '../../../../widgets/numeric_keypad_widget.dart';
-import '../../../../widgets/amount_display_widget.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/logger.dart';
+import '../../domain/models/student_wallet.dart';
+import '../../domain/models/wallet_transaction.dart';
+import '../../domain/requests/withdraw_transaction_request.dart';
+import '../cubits/wallet_cubit.dart';
+import '../widgets/amount_display_widget.dart';
+import '../widgets/numeric_keypad_widget.dart';
+import '../../../../services/nfc_service.dart';
 
 class CashOutPage extends StatefulWidget {
   const CashOutPage({super.key});
@@ -16,20 +19,26 @@ class CashOutPage extends StatefulWidget {
 }
 
 class _CashOutPageState extends State<CashOutPage> {
-  final TransactionService _transactionService = TransactionService();
   final NfcService _nfcService = NfcService();
 
   String _amount = '';
-  CardData? _cardData;
-  bool _isScanning = false;
-  bool _isProcessing = false;
+  // Mapping NFC UIDs to studentNumbers locally (Mock)
+  final Map<String, String> _nfcToStudentMapping = {
+    '04:A1:B2:C3': '001004', // Example UID
+    '04:DE:AD:BE': '001005',
+    '73:52:16:03': '001006',
+  };
+
+  StudentWallet? _resolvedWallet;
+  String? _cardUid;
+  String? _studentNumber;
   String? _errorMessage;
   String? _successMessage;
 
   @override
   void initState() {
     super.initState();
-    _startNfcScan();
+    // Default: don't auto-scan, let user trigger it
   }
 
   @override
@@ -40,31 +49,34 @@ class _CashOutPageState extends State<CashOutPage> {
 
   Future<void> _startNfcScan() async {
     setState(() {
-      _isScanning = true;
       _errorMessage = null;
-      _cardData = null;
+      _successMessage = null;
+      _resolvedWallet = null;
     });
 
     try {
       final result = await _nfcService.scanTag();
-
       if (result != null) {
+        final uid = result.tag.id;
+        final studentNumber = _nfcToStudentMapping[uid];
+
         setState(() {
-          _cardData = CardData(
-            uid: result.tag.id,
-            balance: 500.0,
-            holderName: 'محمد أحمد',
-            isActive: true,
-          );
-          _isScanning = false;
+          _cardUid = uid;
+          _studentNumber = studentNumber;
         });
 
-        AppLogger.info('تم قراءة البطاقة: ${result.tag.id}');
+        if (studentNumber != null) {
+          if (!mounted) return;
+          context.read<WalletCubit>().getWalletDetails(studentNumber);
+        } else {
+          setState(() {
+            _errorMessage = 'البطاقة غير مسجلة في النظام';
+          });
+        }
       }
     } catch (e) {
       setState(() {
         _errorMessage = 'فشل في قراءة البطاقة: $e';
-        _isScanning = false;
       });
       AppLogger.error('خطأ NFC: $e');
     }
@@ -77,10 +89,10 @@ class _CashOutPageState extends State<CashOutPage> {
       _successMessage = null;
     });
 
-    // التحقق الفوري من الرصيد
-    if (_cardData != null) {
+    // Immediate balance check
+    if (_resolvedWallet != null) {
       final parsedAmount = double.tryParse(amount) ?? 0;
-      if (parsedAmount > _cardData!.balance) {
+      if (parsedAmount > _resolvedWallet!.balance) {
         setState(() {
           _errorMessage = 'الرصيد غير كافٍ';
         });
@@ -94,54 +106,24 @@ class _CashOutPageState extends State<CashOutPage> {
   }
 
   bool get _canProcess {
-    return _cardData != null &&
+    return _studentNumber != null &&
         _parsedAmount > 0 &&
-        _parsedAmount <= _cardData!.balance &&
-        !_isProcessing &&
-        !_isScanning;
+        _resolvedWallet != null &&
+        _parsedAmount <= _resolvedWallet!.balance;
   }
 
   Future<void> _processCashOut() async {
     if (!_canProcess) return;
 
-    setState(() {
-      _isProcessing = true;
-      _errorMessage = null;
-      _successMessage = null;
-    });
+    final request = WithdrawTransactionRequest(
+      studentNumber: _studentNumber!,
+      amount: _parsedAmount,
+    );
 
-    try {
-      final result = await _transactionService.processCashOut(
-        card: _cardData!,
-        amount: _parsedAmount,
-      );
-
-      if (result.success) {
-        setState(() {
-          _successMessage =
-              'تم السحب بنجاح!\nالرصيد المتبقي: ${result.updatedCard!.balance.toStringAsFixed(2)} ر.س';
-          _cardData = result.updatedCard;
-          _amount = '';
-        });
-
-        _showSuccessDialog(result.transaction!);
-      } else {
-        setState(() {
-          _errorMessage = result.errorMessage;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'حدث خطأ غير متوقع';
-      });
-    } finally {
-      setState(() {
-        _isProcessing = false;
-      });
-    }
+    context.read<WalletCubit>().withdraw(request);
   }
 
-  void _showSuccessDialog(CashTransaction transaction) {
+  void _showSuccessDialog(WalletTransaction transaction) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -157,7 +139,7 @@ class _CashOutPageState extends State<CashOutPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoRow('رقم العملية:', transaction.id),
+            _buildInfoRow('رقم العملية:', transaction.id.toString()),
             _buildInfoRow(
               'المبلغ:',
               '${transaction.amount.toStringAsFixed(2)} ر.س',
@@ -195,11 +177,10 @@ class _CashOutPageState extends State<CashOutPage> {
     );
   }
 
-  // أزرار المبالغ السريعة
   Widget _buildQuickAmountButtons() {
     final quickAmounts = [50, 100, 200, 500];
-    final availableAmounts = _cardData != null
-        ? quickAmounts.where((a) => a <= _cardData!.balance).toList()
+    final availableAmounts = _resolvedWallet != null
+        ? quickAmounts.where((a) => a <= _resolvedWallet!.balance).toList()
         : <int>[];
 
     if (availableAmounts.isEmpty) return const SizedBox.shrink();
@@ -221,150 +202,199 @@ class _CashOutPageState extends State<CashOutPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('سحب رصيد'),
-        centerTitle: true,
-        backgroundColor: Colors.orange.shade600,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _isScanning ? null : _startNfcScan,
-            tooltip: 'إعادة المسح',
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // معلومات البطاقة
-              CardInfoWidget(
-                uid: _cardData?.uid,
-                balance: _cardData?.balance,
-                holderName: _cardData?.holderName,
-                isScanning: _isScanning,
-                error: _cardData == null && !_isScanning ? _errorMessage : null,
-              ),
+    return BlocConsumer<WalletCubit, WalletState>(
+      listener: (context, state) {
+        if (state is WalletLoaded) {
+          setState(() {
+            _resolvedWallet = state.wallet;
+            _errorMessage = null;
+          });
+        } else if (state is WalletTransactionSuccess) {
+          setState(() {
+            _successMessage = 'تم السحب بنجاح!';
+            _amount = '';
+            // Refresh wallet balance after withdrawal
+            if (_studentNumber != null) {
+              context.read<WalletCubit>().getWalletDetails(_studentNumber!);
+            }
+          });
+          _showSuccessDialog(state.transaction);
+        } else if (state is WalletError) {
+          setState(() {
+            _errorMessage = state.failure.message;
+            _resolvedWallet = null;
+          });
+        }
+      },
+      builder: (context, state) {
+        final isProcessing = state is WalletLoading;
 
-              const SizedBox(height: 16),
-
-              // أزرار المبالغ السريعة
-              _buildQuickAmountButtons(),
-
-              const SizedBox(height: 16),
-
-              // عرض المبلغ
-              AmountDisplayWidget(
-                amount: _amount,
-                label: 'مبلغ السحب',
-                currency: 'ر.س',
-              ),
-
-              const SizedBox(height: 16),
-
-              // رسالة الخطأ
-              if (_errorMessage != null && _cardData != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.error_outline, color: Colors.red.shade700),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: TextStyle(color: Colors.red.shade700),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // رسالة النجاح
-              if (_successMessage != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.green.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green.shade700),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _successMessage!,
-                          style: TextStyle(color: Colors.green.shade700),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              const SizedBox(height: 24),
-
-              // لوحة الأرقام
-              NumericKeypadWidget(
-                currentAmount: _amount,
-                onAmountChanged: _onAmountChanged,
-                enabled: _cardData != null && !_isProcessing,
-              ),
-
-              const SizedBox(height: 24),
-
-              // زر التنفيذ
-              SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _canProcess ? _processCashOut : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange.shade600,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    disabledBackgroundColor: Colors.grey.shade300,
-                  ),
-                  child: _isProcessing
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.remove_circle_outline, size: 24),
-                            SizedBox(width: 8),
-                            Text(
-                              'سحب الرصيد',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('سحب رصيد'),
+            centerTitle: true,
+            backgroundColor: Colors.orange.shade600,
+            foregroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: state is WalletLoading ? null : _startNfcScan,
+                tooltip: 'إعادة المسح',
               ),
             ],
           ),
-        ),
-      ),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CardInfoWidget(
+                    uid: _cardUid,
+                    balance: _resolvedWallet?.balance,
+                    holderName:
+                        _resolvedWallet?.studentName ??
+                        (_studentNumber != null
+                            ? 'طالب رقم $_studentNumber'
+                            : null),
+                    isScanning:
+                        state is WalletLoading && _resolvedWallet == null,
+                    error: _resolvedWallet == null && state is! WalletLoading
+                        ? _errorMessage
+                        : null,
+                  ),
+
+                  if (_resolvedWallet == null && state is! WalletLoading) ...[
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _startNfcScan,
+                      icon: const Icon(Icons.nfc),
+                      label: const Text('مسح البطاقة للبدء'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 16),
+                  _buildQuickAmountButtons(),
+                  const SizedBox(height: 16),
+
+                  AmountDisplayWidget(
+                    amount: _amount,
+                    label: 'مبلغ السحب',
+                    currency: 'ر.س',
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  if (_errorMessage != null && _resolvedWallet != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.red.shade700),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: TextStyle(color: Colors.red.shade700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  if (_successMessage != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green.shade700,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _successMessage!,
+                              style: TextStyle(color: Colors.green.shade700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  const SizedBox(height: 24),
+
+                  NumericKeypadWidget(
+                    currentAmount: _amount,
+                    onAmountChanged: _onAmountChanged,
+                    enabled: _resolvedWallet != null && !isProcessing,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _canProcess && !isProcessing
+                          ? _processCashOut
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        disabledBackgroundColor: Colors.grey.shade300,
+                      ),
+                      child: isProcessing
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.remove_circle_outline, size: 24),
+                                SizedBox(width: 8),
+                                Text(
+                                  'سحب الرصيد',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

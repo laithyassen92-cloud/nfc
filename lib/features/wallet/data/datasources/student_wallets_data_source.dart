@@ -3,7 +3,6 @@ import '../../../../core/either.dart';
 import '../../../../core/failure.dart';
 import '../../../../core/api_constants.dart';
 import '../../domain/models/student_wallet.dart';
-import '../../domain/requests/student_wallet_config_request.dart';
 
 class StudentWalletsDataSource {
   final HttpClientHelper httpClient;
@@ -22,34 +21,13 @@ class StudentWalletsDataSource {
     return headers;
   }
 
-  Future<Either<Failure, StudentWallet>> getWalletByStudentId(
-    int studentId,
+  Future<Either<Failure, StudentWallet>> getWalletDetails(
+    String studentNumber,
   ) async {
     final result = await httpClient.get(
-      '${ApiConstants.studentWalletsEndpoint}/student/$studentId',
+      ApiConstants.walletDetails,
       headers: _headers,
-    );
-
-    return result.map((data) => StudentWallet.fromJson(data));
-  }
-
-  Future<Either<Failure, StudentWallet>> getWalletById(int walletId) async {
-    final result = await httpClient.get(
-      '${ApiConstants.studentWalletsEndpoint}/$walletId',
-      headers: _headers,
-    );
-
-    return result.map((data) => StudentWallet.fromJson(data));
-  }
-
-  Future<Either<Failure, StudentWallet>> updateWalletConfig(
-    int walletId,
-    StudentWalletConfigRequest request,
-  ) async {
-    final result = await httpClient.put(
-      '${ApiConstants.studentWalletsEndpoint}/$walletId',
-      body: request.toJson(),
-      headers: _headers,
+      queryParameters: {'studentNumber': studentNumber},
     );
 
     return result.map((data) => StudentWallet.fromJson(data));
@@ -60,7 +38,8 @@ class StudentWalletsDataSource {
     required int pageSize,
   }) async {
     final result = await httpClient.get(
-      ApiConstants.studentWalletsEndpoint,
+      ApiConstants
+          .walletDetails, // getAllWallets might not exist, using walletDetails for now per context
       headers: _headers,
       queryParameters: {
         'page': page.toString(),

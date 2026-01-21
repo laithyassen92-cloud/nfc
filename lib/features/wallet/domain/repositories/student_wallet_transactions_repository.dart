@@ -8,15 +8,12 @@ import '../requests/refund_transaction_request.dart';
 
 /// Repository interface for student wallet transaction operations
 abstract class StudentWalletTransactionsRepository {
-  /// Get transactions for a wallet
-  Future<Either<Failure, List<WalletTransaction>>> getTransactionsByWalletId({
-    required int walletId,
+  /// Get transactions for a student
+  Future<Either<Failure, List<WalletTransaction>>> getStudentTransactions({
+    required String studentNumber,
     required int page,
     required int pageSize,
   });
-
-  /// Get transaction by ID
-  Future<Either<Failure, WalletTransaction>> getTransactionById(int id);
 
   /// Create deposit transaction
   Future<Either<Failure, WalletTransaction>> deposit(
@@ -32,10 +29,4 @@ abstract class StudentWalletTransactionsRepository {
   Future<Either<Failure, WalletTransaction>> refund(
     RefundTransactionRequest request,
   );
-
-  /// Get all transactions (paginated)
-  Future<Either<Failure, List<WalletTransaction>>> getAllTransactions({
-    required int page,
-    required int pageSize,
-  });
 }

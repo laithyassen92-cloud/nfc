@@ -1,4 +1,4 @@
-// lib/widgets/amount_display_widget.dart
+// lib/features/wallet/presentation/widgets/amount_display_widget.dart
 
 import 'package:flutter/material.dart';
 
@@ -286,6 +286,7 @@ class CardInfoWidget extends StatelessWidget {
               color: Colors.white.withOpacity(0.8),
               fontSize: 12,
               fontFamily: 'monospace',
+              letterSpacing: 1.5,
             ),
           ),
           if (balance != null) ...[
