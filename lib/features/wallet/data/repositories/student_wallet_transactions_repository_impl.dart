@@ -14,21 +14,16 @@ class StudentWalletTransactionsRepositoryImpl
   StudentWalletTransactionsRepositoryImpl({required this.dataSource});
 
   @override
-  Future<Either<Failure, List<WalletTransaction>>> getTransactionsByWalletId({
-    required int walletId,
+  Future<Either<Failure, List<WalletTransaction>>> getStudentTransactions({
+    required String studentNumber,
     required int page,
     required int pageSize,
   }) {
-    return dataSource.getTransactionsByWalletId(
-      walletId: walletId,
+    return dataSource.getStudentTransactions(
+      studentNumber: studentNumber,
       page: page,
       pageSize: pageSize,
     );
-  }
-
-  @override
-  Future<Either<Failure, WalletTransaction>> getTransactionById(int id) {
-    return dataSource.getTransactionById(id);
   }
 
   @override
@@ -50,13 +45,5 @@ class StudentWalletTransactionsRepositoryImpl
     RefundTransactionRequest request,
   ) {
     return dataSource.refund(request);
-  }
-
-  @override
-  Future<Either<Failure, List<WalletTransaction>>> getAllTransactions({
-    required int page,
-    required int pageSize,
-  }) {
-    return dataSource.getAllTransactions(page: page, pageSize: pageSize);
   }
 }

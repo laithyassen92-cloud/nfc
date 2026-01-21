@@ -27,15 +27,16 @@ class StudentWalletTransactionsDataSource {
     return headers;
   }
 
-  Future<Either<Failure, List<WalletTransaction>>> getTransactionsByWalletId({
-    required int walletId,
+  Future<Either<Failure, List<WalletTransaction>>> getStudentTransactions({
+    required String studentNumber,
     required int page,
     required int pageSize,
   }) async {
     final result = await httpClient.get(
-      '${ApiConstants.studentWalletTransactionsEndpoint}/wallet/$walletId',
+      ApiConstants.getStudentTransactions,
       headers: _headers,
       queryParameters: {
+        'studentNumber': studentNumber,
         'page': page.toString(),
         'pageSize': pageSize.toString(),
       },
@@ -51,20 +52,11 @@ class StudentWalletTransactionsDataSource {
     });
   }
 
-  Future<Either<Failure, WalletTransaction>> getTransactionById(int id) async {
-    final result = await httpClient.get(
-      '${ApiConstants.studentWalletTransactionsEndpoint}/$id',
-      headers: _headers,
-    );
-
-    return result.map((data) => WalletTransaction.fromJson(data));
-  }
-
   Future<Either<Failure, WalletTransaction>> deposit(
     DepositTransactionRequest request,
   ) async {
     final result = await httpClient.post(
-      '${ApiConstants.studentWalletTransactionsEndpoint}/deposit',
+      ApiConstants.deposit,
       body: request.toJson(),
       headers: _headers,
     );
@@ -76,7 +68,7 @@ class StudentWalletTransactionsDataSource {
     WithdrawTransactionRequest request,
   ) async {
     final result = await httpClient.post(
-      '${ApiConstants.studentWalletTransactionsEndpoint}/withdraw',
+      ApiConstants.withdraw,
       body: request.toJson(),
       headers: _headers,
     );
@@ -88,34 +80,11 @@ class StudentWalletTransactionsDataSource {
     RefundTransactionRequest request,
   ) async {
     final result = await httpClient.post(
-      '${ApiConstants.studentWalletTransactionsEndpoint}/refund',
+      ApiConstants.refund,
       body: request.toJson(),
       headers: _headers,
     );
 
     return result.map((data) => WalletTransaction.fromJson(data));
-  }
-
-  Future<Either<Failure, List<WalletTransaction>>> getAllTransactions({
-    required int page,
-    required int pageSize,
-  }) async {
-    final result = await httpClient.get(
-      ApiConstants.studentWalletTransactionsEndpoint,
-      headers: _headers,
-      queryParameters: {
-        'page': page.toString(),
-        'pageSize': pageSize.toString(),
-      },
-    );
-
-    return result.map((data) {
-      final list = data['items'] as List? ?? data['data'] as List? ?? [];
-      return list
-          .map(
-            (item) => WalletTransaction.fromJson(item as Map<String, dynamic>),
-          )
-          .toList();
-    });
   }
 }

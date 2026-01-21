@@ -8,6 +8,7 @@ import 'features/students/presentation/cubits/students_cubit.dart';
 import 'features/wallet/presentation/cubits/wallet_cubit.dart';
 import 'features/wallet/presentation/cubits/transactions_cubit.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
+import 'features/wallet/presentation/screens/cash_in_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,7 +54,8 @@ class NfcReaderApp extends StatelessWidget {
               serviceLocator.setAuthToken(state.token);
               return const NfcHomePage();
             }
-            return const LoginScreen();
+
+            return const CashInPage();
           },
         ),
       ),

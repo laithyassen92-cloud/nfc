@@ -86,8 +86,10 @@ class ServiceLocator {
   StudentsCubit get studentsCubit =>
       StudentsCubit(repository: studentsRepository);
 
-  WalletCubit get walletCubit =>
-      WalletCubit(repository: studentWalletsRepository);
+  WalletCubit get walletCubit => WalletCubit(
+    walletsRepository: studentWalletsRepository,
+    transactionsRepository: studentWalletTransactionsRepository,
+  );
 
   TransactionsCubit get transactionsCubit =>
       TransactionsCubit(repository: studentWalletTransactionsRepository);

@@ -52,15 +52,15 @@ class TransactionsCubit extends Cubit<TransactionsState> {
 
   TransactionsCubit({required this.repository}) : super(TransactionsInitial());
 
-  Future<void> loadTransactionsByWalletId({
-    required int walletId,
+  Future<void> loadTransactions({
+    required String studentNumber,
     int page = 1,
     int pageSize = 20,
   }) async {
     emit(TransactionsLoading());
 
-    final result = await repository.getTransactionsByWalletId(
-      walletId: walletId,
+    final result = await repository.getStudentTransactions(
+      studentNumber: studentNumber,
       page: page,
       pageSize: pageSize,
     );
@@ -68,17 +68,6 @@ class TransactionsCubit extends Cubit<TransactionsState> {
     result.fold(
       (failure) => emit(TransactionsError(failure)),
       (transactions) => emit(TransactionsLoaded(transactions)),
-    );
-  }
-
-  Future<void> loadTransactionById(int id) async {
-    emit(TransactionsLoading());
-
-    final result = await repository.getTransactionById(id);
-
-    result.fold(
-      (failure) => emit(TransactionsError(failure)),
-      (transaction) => emit(TransactionDetailsLoaded(transaction)),
     );
   }
 
@@ -112,20 +101,6 @@ class TransactionsCubit extends Cubit<TransactionsState> {
     result.fold(
       (failure) => emit(TransactionsError(failure)),
       (transaction) => emit(TransactionDetailsLoaded(transaction)),
-    );
-  }
-
-  Future<void> loadAllTransactions({int page = 1, int pageSize = 20}) async {
-    emit(TransactionsLoading());
-
-    final result = await repository.getAllTransactions(
-      page: page,
-      pageSize: pageSize,
-    );
-
-    result.fold(
-      (failure) => emit(TransactionsError(failure)),
-      (transactions) => emit(TransactionsLoaded(transactions)),
     );
   }
 }
